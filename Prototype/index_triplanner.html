@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TriPlanner</title>
+
+<style>
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: Inter, system-ui, sans-serif;
+}
+
+body {
+    min-height: 100vh;
+    background:
+        radial-gradient(circle at top left, rgba(255,255,255,.95), transparent 35%),
+        radial-gradient(circle at top right, rgba(210,225,255,.55), transparent 30%),
+        linear-gradient(180deg, #f5f7fb 0%, #eef2f8 50%, #e8edf5 100%);
+    background-attachment: fixed;
+    color: #1d1d1f;
+}
+
+/* ---------- PAGE 1 ---------- */
+
+.hero {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    padding: 40px;
+}
+
+.logo {
+    font-size: 42px;
+    font-weight: 700;
+    margin-bottom: 20px;
+}
+
+.subtitle {
+    color: #666;
+    margin-bottom: 40px;
+    text-align: center;
+    max-width: 600px;
+}
+
+.prompt-box {
+    width: 100%;
+    max-width: 800px;
+}
+
+.prompt-input {
+    width: 100%;
+    min-height: 120px;
+    padding: 20px;
+    border-radius: 18px;
+    border: 1px solid #dcdcdc;
+    resize: vertical;
+    font-size: 16px;
+}
+
+.generate-btn {
+    margin-top: 16px;
+    padding: 14px 24px;
+    border: none;
+    border-radius: 12px;
+    background: #111827;
+    color: white;
+    cursor: pointer;
+    font-size: 15px;
+}
+
+/* ---------- PAGE 2 ---------- */
+
+.results-page {
+    display: none;
+    padding: 60px;
+}
+
+.prompt-summary {
+    display: inline-block;
+    background: white;
+    padding: 12px 18px;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    margin-bottom: 30px;
+    font-weight: 500;
+}
+
+.table-container {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+}
+
+/* FIX: prevent clipping dropdown */
+table {
+    background: white;
+    border-radius: 20px;
+    overflow: visible;
+    border: 1px solid #e5e7eb;
+    border-collapse: collapse;
+    box-shadow: 0 10px 30px rgba(0,0,0,.05);
+}
+
+/* FIX: allow dropdown outside row */
+thead, tbody, tr, th, td {
+    overflow: visible;
+}
+
+th, td {
+    min-width: 150px;
+    padding: 14px 18px;
+    border-bottom: 1px solid #ececec;
+    border-right: 1px solid #ececec;
+}
+
+th {
+    background: #fafafa;
+    font-weight: 600;
+    position: relative;
+}
+
+/* FIX: header NOT editable */
+th [contenteditable="true"] {
+    outline: none;
+}
+
+td {
+    outline: none;
+}
+
+td:hover {
+    background: #fafcff;
+}
+
+td:last-child, th:last-child {
+    border-right: none;
+}
+
+.side-button, .bottom-button {
+    border: 1px solid #e5e7eb;
+    background: white;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: .2s;
+}
+
+.side-button {
+    height: 46px;
+    padding: 0 18px;
+}
+
+.bottom-button {
+    margin-top: 12px;
+    padding: 12px 18px;
+}
+
+.side-button:hover, .bottom-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,.08);
+}
+
+/* ---------- AI MENU ---------- */
+
+.header-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+/* sparkles */
+.ai-btn {
+    opacity: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 14px;
+    transition: opacity .15s ease;
+}
+
+th:hover .ai-btn {
+    opacity: 1;
+}
+
+/* FIX: ensure dropdown floats above everything */
+.ai-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 8px;
+    width: 240px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.12);
+    display: none;
+    z-index: 9999;
+}
+
+.ai-menu.open {
+    display: block;
+}
+
+.ai-suggestion {
+    width: 100%;
+    margin-bottom: 6px;
+    padding: 8px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #f9fafb;
+    cursor: pointer;
+    text-align: left;
+}
+
+.ai-prompt {
+    width: 100%;
+    min-height: 70px;
+    margin-top: 8px;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    resize: vertical;
+
+    /* FIX: ensure typing works */
+    pointer-events: auto;
+}
+
+.ai-apply {
+    width: 100%;
+    margin-top: 8px;
+    padding: 8px;
+    border: none;
+    border-radius: 8px;
+    background: #111827;
+    color: white;
+    cursor: pointer;
+}
+
+.hero, .results-page {
+    min-height: 100vh;
+}
+
+.results-page {
+    display: none;
+    padding: 60px;
+    background: transparent;
+}
+
+.prompt-box, .prompt-summary {
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+}
+
+.prompt-summary {
+    background: rgba(255,255,255,.55);
+    border: 1px solid rgba(255,255,255,.55);
+    border-radius: 18px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.06);
+}
+
+.prompt-input, table, .ai-menu,
+.side-button, .bottom-button, .generate-btn {
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+}
+
+.prompt-input {
+    background: rgba(255,255,255,.55);
+    border: 1px solid rgba(255,255,255,.55);
+    border-radius: 24px;
+    box-shadow: 0 10px 40px rgba(0,0,0,.06), inset 0 1px 0 rgba(255,255,255,.8);
+}
+
+.generate-btn, .side-button, .bottom-button {
+    background: rgba(255,255,255,.55);
+    border: 1px solid rgba(255,255,255,.6);
+    border-radius: 18px;
+    color: #1d1d1f;
+    box-shadow: 0 8px 24px rgba(0,0,0,.06), inset 0 1px 0 rgba(255,255,255,.8);
+}
+
+.table-container{
+    align-items:flex-start;
+}
+
+table {
+    background: rgba(255,255,255,.42);
+    border: 1px solid rgba(255,255,255,.55);
+    border-radius: 30px;
+    box-shadow: 0 16px 50px rgba(0,0,0,.08), inset 0 1px 0 rgba(255,255,255,.9);
+}
+
+th {
+    background: rgba(255,255,255,.18);
+}
+
+td:hover {
+    background: rgba(255,255,255,.3);
+}
+
+.ai-menu {
+    background: rgba(248,249,252,.88);
+    border: 1px solid rgba(255,255,255,.7);
+    border-radius: 22px;
+    box-shadow: 0 18px 60px rgba(0,0,0,.12);
+    isolation: isolate;
+}
+
+.ai-menu::before {
+    content:'';
+    position:absolute;
+    inset:0;
+    border-radius:22px;
+    background: rgba(255,255,255,.55);
+    z-index:-1;
+}
+
+
+.floating-prompt {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+
+    width: 350px;
+    padding: 16px;
+
+    background: rgba(255,255,255,.8);
+    
+
+    border: 1px solid rgba(255,255,255,.6);
+    border-radius: 20px;
+
+    box-shadow: 0 10px 40px rgba(0,0,0,.1);
+
+    z-index: 99999;
+}
+
+.floating-prompt textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 12px;
+
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+
+    resize: none;
+    outline: none;
+
+    background: rgba(255,255,255,1.);
+}
+
+    
+
+
+
+#addRowBtn{
+    margin-left:16px;
+    margin-top:6px;
+    align-self:flex-start;
+    position:relative;
+    z-index:1;
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- PAGE 1 -->
+<section class="hero" id="promptPage">
+
+    <div class="logo">TriPlanner</div>
+
+    <div class="subtitle">
+        Describe your trip and get an AI-generated planning table.
+    </div>
+
+    <div class="prompt-box">
+        <textarea class="prompt-input"
+        placeholder="e.g. Hiking trips in the Bay Area"></textarea>
+
+        <button class="generate-btn">Generate Plan</button>
+    </div>
+
+</section>
+
+<!-- PAGE 2 -->
+<section class="results-page" id="resultsPage">
+
+    <div class="prompt-summary">
+        Topic
+    </div>
+
+    <div class="table-container">
+
+        <table id="tripTable">
+            <thead></thead>
+            <tbody></tbody>
+        </table>
+
+        <button id="addColumnBtn" class="bottom-button">+</button>
+    </div>
+
+    <div class="floating-prompt">
+        <textarea placeholder="Suggest changes..."></textarea>
+    </div>
+
+    <button id="addRowBtn" class="side-button">+</button>
+
+</section>
+
+<script>
+
+const hero = document.getElementById("promptPage");
+const results = document.getElementById("resultsPage");
+const table = document.getElementById("tripTable");
+
+document.querySelector(".generate-btn")
+.addEventListener("click", generateTrip);
+
+/*KI anbindung*/
+async function generateTrip() {
+
+    const prompt =
+        document.querySelector(".prompt-input").value.trim();
+
+    if (!prompt) {
+        alert("Please enter a trip description.");
+        return;
+    }
+
+    const button = document.querySelector(".generate-btn");
+
+    button.disabled = true;
+    button.textContent = "Generating...";
+
+    try {
+
+        const response = await fetch("/submit", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                prompt: prompt
+            })
+        });
+
+        const result = await response.json();
+
+        hero.style.display = "none";
+        results.style.display = "block";
+
+        document.querySelector(".prompt-summary")
+            .textContent = result.summary;
+
+        buildTable(result.columns, result.rows, result.suggestions);
+
+    } catch (error) {
+
+        alert("Error: " + error.message);
+
+    } finally {
+
+        button.disabled = false;
+        button.textContent = "Generate Plan";
+    }
+}
+
+/*KI Anbindung*/
+function buildTable(columns, rows, suggestions) {
+
+    const thead = table.querySelector("thead");
+    const tbody = table.querySelector("tbody");
+
+    thead.innerHTML = "";
+    tbody.innerHTML = "";
+
+    const headerRow = document.createElement("tr");
+
+    columns.forEach((column, index) => {
+        const th = document.createElement("th");
+        const colSuggestions = suggestions && suggestions[column]
+            ? suggestions[column]
+            : ["AI Suggestion", "AI Suggestion"];
+
+        th.innerHTML = `
+            <div class="header-wrapper">
+                <span>${column}</span>
+                <button class="ai-btn">✨</button>
+            </div>
+            <div class="ai-menu">
+                <button class="ai-suggestion">${colSuggestions[0]}</button>
+                <button class="ai-suggestion">${colSuggestions[1]}</button>
+                <textarea class="ai-prompt" placeholder="Describe changes..."></textarea>
+                <button class="ai-apply">Apply</button>
+            </div>
+        `;
+        headerRow.appendChild(th);
+    }); 
+
+    thead.appendChild(headerRow);
+
+    rows.forEach(rowData => {
+
+        const row = document.createElement("tr");
+
+        rowData.forEach(cellData => {
+
+            const td = document.createElement("td");
+
+            td.contentEditable = true;
+            td.textContent = cellData;
+
+            row.appendChild(td);
+        });
+
+        tbody.appendChild(row);
+    });
+
+    initAIMenus();
+}
+
+function initAIMenus() {
+
+    document.querySelectorAll(".ai-btn").forEach(btn => {
+        btn.onclick = (e) => {
+            e.stopPropagation();
+
+            const menu = btn.closest("th").querySelector(".ai-menu");
+
+            document.querySelectorAll(".ai-menu").forEach(m => {
+                if (m !== menu) m.classList.remove("open");
+            });
+
+            menu.classList.toggle("open");
+        };
+    });
+
+    document.querySelectorAll(".ai-suggestion").forEach(btn => {
+        btn.onclick = (e) => {
+            e.stopPropagation();
+
+            const th = btn.closest("th");
+            const column = th.querySelector("span").textContent.trim();
+            const colIndex = Array.from(th.parentElement.children).indexOf(th);
+            const suggestion = btn.textContent.trim();
+
+            // aktuelle Zeilenwerte sammeln
+            const currentRows = Array.from(table.querySelectorAll("tbody tr")).map(row =>
+                row.children[colIndex]?.textContent.trim() || ""
+            );
+            const existingRows = Array.from(table.querySelectorAll("tbody tr"))
+                .map(row => Array.from(row.children).map(td => td.textContent.trim())
+            );
+
+            btn.textContent = "Loading...";
+            btn.disabled = true;
+
+            fetch("/refine-column", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({column, suggestion, rows: currentRows, existingRows})
+            })
+            .then(r => r.json())
+            .then(result => {
+                result.values.forEach((val, i) => {
+                    const row = table.querySelectorAll("tbody tr")[i];
+                    if (row) row.children[colIndex].textContent = val;
+                });
+                btn.textContent = suggestion;
+                btn.disabled = false;
+                th.querySelector(".ai-menu").classList.remove("open");
+            })
+            .catch(err => {
+                alert("Error: " + err.message);
+                btn.textContent = suggestion;
+                btn.disabled = false;
+            });
+        };
+    });
+}
+
+// click outside the menu causes it to close 
+document.addEventListener("click", (e) => {
+
+    const isInsideHeader = e.target.closest("th");
+    const isInsideMenu = e.target.closest(".ai-menu");
+
+    if (!isInsideHeader && !isInsideMenu) {
+        document.querySelectorAll(".ai-menu")
+            .forEach(m => m.classList.remove("open"));
+    }
+});
+
+initAIMenus();
+
+
+// adding rows
+document.getElementById("addRowBtn").addEventListener("click", async () => {
+    const colCount = table.querySelector("thead tr").children.length;
+    const columns = Array.from(table.querySelectorAll("thead th span"))
+        .map(s => s.textContent.trim());
+    const existingRows = Array.from(table.querySelectorAll("tbody tr"))
+        .map(row => Array.from(row.children).map(td => td.textContent.trim()));
+
+    const btn = document.getElementById("addRowBtn");
+    btn.textContent = "Loading...";
+    btn.disabled = true;
+
+    try {
+        const response = await fetch("/add-row", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ columns, existingRows })
+        });
+
+        const result = await response.json();
+
+        const row = document.createElement("tr");
+        result.values.forEach(cellData => {
+            const td = document.createElement("td");
+            td.contentEditable = true;
+            td.textContent = cellData;
+            row.appendChild(td);
+        });
+        table.querySelector("tbody").appendChild(row);
+
+    } catch (err) {
+        alert("Error: " + err.message);
+    } finally {
+        btn.textContent = "+ Suggestion";
+        btn.disabled = false;
+    }
+});
+
+
+// adding columns
+document.getElementById("addColumnBtn").addEventListener("click", () => {
+    const headerRow = table.querySelector("thead tr");
+    const rowCount = table.querySelectorAll("tbody tr").length;
+
+    const th = document.createElement("th");
+    th.innerHTML = `
+        <div class="header-wrapper">
+            <span contenteditable="true" data-placeholder=""></span>
+            <button class="generate-col-btn">→</button>
+        </div>
+        <div class="ai-menu">
+            <button class="ai-suggestion">AI Suggestion</button>
+            <button class="ai-suggestion">AI Suggestion</button>
+            <textarea class="ai-prompt" placeholder="Describe changes..."></textarea>
+            <button class="ai-apply">Apply</button>
+        </div>
+    `;
+    headerRow.appendChild(th);
+
+    // leere Zellen in jeder Zeile
+    table.querySelectorAll("tbody tr").forEach(row => {
+        const td = document.createElement("td");
+        td.contentEditable = true;
+        row.appendChild(td);
+    });
+
+    // Fokus auf den Header
+    const span = th.querySelector("span");
+    span.focus();
+
+    // Generate Button
+    const generateBtn = th.querySelector(".generate-col-btn");
+    generateBtn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+
+        const columnName = span.textContent.trim();
+        if (!columnName || columnName === "Column name...") {
+            alert("Please enter a column name first.");
+            return;
+        }
+
+        const columns = Array.from(table.querySelectorAll("thead th span"))
+            .map(s => s.textContent.trim());
+        const existingRows = Array.from(table.querySelectorAll("tbody tr"))
+            .map(row => Array.from(row.children).map(td => td.textContent.trim()));
+        const colIndex = Array.from(headerRow.children).indexOf(th);
+
+        generateBtn.textContent = "...";
+        generateBtn.disabled = true;
+
+        try {
+            const response = await fetch("/add-column", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ columnName, columns, existingRows })
+            });
+
+            const result = await response.json();
+
+            // Zellen befüllen
+            table.querySelectorAll("tbody tr").forEach((row, i) => {
+                row.children[colIndex].textContent = result.values[i] || "";
+            });
+
+            // zu normalem AI-Menu wechseln
+            th.querySelector(".ai-menu").innerHTML = `
+                <button class="ai-suggestion">${result.suggestions?.[0] || "AI Suggestion"}</button>
+                <button class="ai-suggestion">${result.suggestions?.[1] || "AI Suggestion"}</button>
+                <textarea class="ai-prompt" placeholder="Describe changes..."></textarea>
+                <button class="ai-apply">Apply</button>
+            `;
+
+            generateBtn.textContent = "✨";
+            generateBtn.classList.remove("generate-col-btn");
+            generateBtn.classList.add("ai-btn");
+            generateBtn.disabled = false;
+            initAIMenus();
+
+        } catch (err) {
+            alert("Error: " + err.message);
+            generateBtn.textContent = "→";
+            generateBtn.disabled = false;
+        }
+    });
+
+    initAIMenus();
+});
+
+</script>
+
+</body>
+</html>
